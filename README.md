@@ -103,3 +103,12 @@ The R baseline needs R ≥ 4.2 with `data.table` and `ranger`.
   invalidating family-consensus pseudo-labeling.
 - Final submissions: safety blend 0.80219 (best), pure candidate 0.79939 — public-LB
   noise (~±0.3pp at 99% prediction agreement) exceeds all remaining OOF gains.
+
+## Kaggle notebooks
+
+- [0.802 Public Solution](https://www.kaggle.com/code/moranzavdi/spaceship-titanic-0-802-public-solution)
+  — the full three-variant pipeline of the best submission, one-click runnable (public).
+- [Best Model (0.800 LB)](https://www.kaggle.com/code/moranzavdi/spaceship-titanic-best-model-0-800-lb)
+  — compact version of the pipeline (public on request).
+- [R Model Dev](https://www.kaggle.com/code/moranzavdi/spaceship-titanic-r-model-dev)
+  — interactive R notebook for feature/model experimentation.
