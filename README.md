@@ -3,6 +3,8 @@
 Solution for the [Kaggle Spaceship Titanic](https://www.kaggle.com/competitions/spaceship-titanic)
 competition: predict which passengers were transported to an alternate dimension.
 
+1 Weekend challenge
+
 **Result: 0.80009 public leaderboard accuracy** (cross-validated OOF 0.8124), up from
 0.7438 for a vanilla Random Forest baseline.
 
