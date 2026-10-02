@@ -92,3 +92,14 @@ The R baseline needs R ≥ 4.2 with `data.table` and `ranger`.
 ## License
 
 [MIT](LICENSE) — use it, fork it, submit with it.
+
+## Addendum — round 2 results (TabPFN + soft labels)
+
+- TabPFN v2 on Kaggle GPU: 0.8059 OOF as a standalone member; adds +0.0004 to the
+  stack at 15% blend weight (`notebooks/kaggle_tabpfn_gpu.ipynb`).
+- Soft/confidence-weighted pseudo-labels (`scripts/v7_soft.py`): no gain (0.8126 vs
+  0.8132) — hard labels converged.
+- Error analysis found only 9.9% of multi-member groups have unanimous outcomes,
+  invalidating family-consensus pseudo-labeling.
+- Final submissions: safety blend 0.80219 (best), pure candidate 0.79939 — public-LB
+  noise (~±0.3pp at 99% prediction agreement) exceeds all remaining OOF gains.
