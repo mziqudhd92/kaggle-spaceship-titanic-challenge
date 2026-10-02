@@ -2,7 +2,6 @@
 # (threshold 0.90/0.10, labels frozen when a row joins) -> best-round submission.
 # Stops when the stack OOF fails to improve for 2 consecutive rounds.
 
-import os
 import numpy as np
 import pandas as pd
 import time
@@ -12,7 +11,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import accuracy_score
 
-DATA = Path(__import__("os").environ.get("SST_DATA_DIR", "."))
+DATA = Path("/Users/mz/.zcode/workspace/default/spaceship-titanic")
 CKPT = DATA / "v5_ckpt"
 SEED = 42
 np.random.seed(SEED)
@@ -59,12 +58,23 @@ def fit_predict(name, fit_rows, fit_y, pred_rows):
     if name == "lgbm":
         import lightgbm as lgb
         m = lgb.LGBMClassifier(**lgb_params, random_state=SEED, verbose=-1)
-        m.fit(M_all[fit_rows], fit_y, categorical_feature=cat_idx)
+        if pred_rows.max() < n:
+            m.fit(M_all[fit_rows], fit_y, categorical_feature=cat_idx,
+                  eval_set=[(M_all[pred_rows], y[pred_rows])],
+                  callbacks=[lgb.early_stopping(80, verbose=False)])
+        else:
+            m.fit(M_all[fit_rows], fit_y, categorical_feature=cat_idx)
         return m.predict_proba(M_all[pred_rows])[:, 1]
     if name == "xgb":
         import xgboost as xgb
-        m = xgb.train(xgb_params, xgb.DMatrix(X_all[fit_rows], label=fit_y),
-                      num_boost_round=3000)
+        is_val = pred_rows.max() < n  # OOF fits: early-stop on the val fold
+        dtr = xgb.DMatrix(X_all[fit_rows], label=fit_y)
+        if is_val:
+            dva = xgb.DMatrix(X_all[pred_rows], label=y[pred_rows])
+            m = xgb.train(xgb_params, dtr, num_boost_round=3000,
+                          evals=[(dva, "val")], early_stopping_rounds=80, verbose_eval=False)
+            return m.predict(dva, iteration_range=(0, m.best_iteration + 1))
+        m = xgb.train(xgb_params, dtr, num_boost_round=1200)
         return m.predict(xgb.DMatrix(X_all[pred_rows]))
     if name == "histgb":
         m = HistGradientBoostingClassifier(**hist_params, random_state=SEED)
@@ -86,6 +96,8 @@ def stack_oof(pseudo_idx, pseudo_y):
     nn_oof = np.load(CKPT / "oof_nn.npy")
     cols = model_names + ["nn"]
     mats = [oof[k] for k in model_names] + [nn_oof]
+    for k, arr in zip(cols, mats):
+        np.save(CKPT / f"v6r_oof_{k}.npy", arr)
     oofM = np.column_stack(mats)
     stack = LogisticRegression(C=1.0, max_iter=1000).fit(oofM, y)
     oof_stack = stack.predict_proba(oofM)[:, 1]
@@ -162,11 +174,14 @@ for round_i in range(1, 6):
             break
 
 print(f"BEST v6 OOF: {best_acc:.4f}", flush=True)
-if best_test is not None and best_acc > 0.8124:  # beat v5e's OOF
+if best_test is not None:
+    from scipy.optimize import minimize_scalar
+    opt = minimize_scalar(lambda t: -acc(np.load(CKPT / "v6_best_oof_stack.npy"), t),
+                          bounds=(0.35, 0.65), method="bounded")
+    t_best = float(opt.x)
+    print(f"threshold tuned on OOF: {t_best:.3f} -> {acc(np.load(CKPT / 'v6_best_oof_stack.npy'), t_best):.4f}", flush=True)
     pd.DataFrame({"PassengerId": test["PassengerId"],
-                  "Transported": np.where(best_test > 0.5, "True", "False")}
+                  "Transported": np.where(best_test > t_best, "True", "False")}
                  ).to_csv(DATA / "submission_v6.csv", index=False)
-    print("Wrote submission_v6.csv", flush=True)
-else:
-    print("no improvement over v5e — nothing written", flush=True)
+    print("Wrote submission_v6.csv (threshold-tuned)", flush=True)
 print("DONE", flush=True)
