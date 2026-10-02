@@ -1,0 +1,19 @@
+# data + generated artifacts (fetch data via the Kaggle CLI, see README)
+*.csv
+*.zip
+v5_ckpt/
+nohup.out
+*.log
+
+# environments
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# generated submissions (reproduce with the scripts)
+submission*.csv
+
+# notebook + OS noise
+.ipynb_checkpoints/
+.DS_Store
